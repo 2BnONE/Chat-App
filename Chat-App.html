@@ -212,7 +212,8 @@
     </div>
 
     <script>
-        const ws = new WebSocket('https://chat-app-xz3c.onrender.com'); // يجب أن يكون الخادم متاحاً
+        // 🚨 التعديل الأول: جعل ws متغيراً يمكن إعادة تعريفه وإزالة الاتصال الأولي
+        let ws = null; 
         let userName = null; 
         const messagesContainer = document.getElementById('messages');
         
@@ -227,7 +228,50 @@
         const tryAgainBtn = document.getElementById('try-again-btn');
 
         const reservedNames = ["Admin", "System", "Server", "Root", "God"]; 
-        
+        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // تم استخراج الرابط
+
+        // -----------------------------------------------------
+        // وظائف الاتصال والتحقق (NEW)
+        // -----------------------------------------------------
+
+        function connectWebSocket() {
+            // 🚨 التعديل الثاني: استخدام wss:// للاتصال الآمن
+            ws = new WebSocket('wss://' + SERVER_URL); 
+            
+            ws.onopen = () => {
+                console.log("WebSocket Connected.");
+                const name = localStorage.getItem('pendingUserName');
+                
+                // إذا كان المستخدم بانتظار الموافقة، أعد إرسال الطلب فور الاتصال
+                if (name) {
+                    currentStatusMessage.innerHTML = `<p style="color: #00eaff;">حالة الطلب: **تم استعادة الاتصال** وإعادة إرسال طلب الموافقة...</p>`;
+                    ws.send(JSON.stringify({ 
+                        type: 'join_request', 
+                        name: name 
+                    }));
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log("WebSocket Disconnected.");
+                
+                // 🚨 التعديل الثالث: آلية إعادة الاتصال التلقائي
+                // إذا فقد الاتصال والمستخدم لا يزال ينتظر (لم تتم الموافقة عليه بعد)
+                if (localStorage.getItem('pendingUserName')) {
+                    currentStatusMessage.innerHTML = `<p style="color: #ff3b30;">**تم فقدان الاتصال!** محاولة إعادة الاتصال في 5 ثواني...</p>`;
+                    setTimeout(connectWebSocket, 5000); 
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error("WebSocket Error:", error);
+                // يمكن إضافة رسالة خطأ للمستخدم هنا
+            };
+
+            // ربط معالج onmessage بالدالة الجديدة
+            ws.onmessage = handleServerMessage; 
+        }
+
         // -----------------------------------------------------
         // وظائف الأمان والعرض
         // -----------------------------------------------------
@@ -260,6 +304,7 @@
         }
 
         function validateAndSetUsername() {
+            // ... (باقي منطق التحقق من الاسم) ...
             const name = usernameInput.value.trim();
 
             if (name.length < 3 || name.length > 20) {
@@ -274,6 +319,12 @@
             
             if (reservedNames.map(n => n.toLowerCase()).includes(name.toLowerCase())) {
                 errorMessage.textContent = "عذراً، هذا الاسم محجوز/مستخدم بالفعل.";
+                return false;
+            }
+
+            // التأكد من أن الاتصال مفتوح قبل الإرسال
+            if (ws.readyState !== WebSocket.OPEN) {
+                errorMessage.textContent = "جاري الاتصال بالخادم، يرجى المحاولة بعد قليل.";
                 return false;
             }
             
@@ -297,10 +348,9 @@
         }
 
         // -----------------------------------------------------
-        // معالجة الأحداث والردود من الخادم
+        // معالجة الأحداث والردود من الخادم (NEW)
         // -----------------------------------------------------
-
-        ws.onmessage = (event) => {
+        function handleServerMessage(event) {
             try {
                 const data = JSON.parse(event.data);
                 
@@ -346,16 +396,27 @@
             } catch (e) {
                  // إذا كانت رسالة نصية عادية (بعد الموافقة)
                  if (userName !== null) {
-                    // ... منطق معالجة الرسائل الأصلية ...
+                    // رسالة نصية بسيطة، قم بعرضها
+                    const fullMessage = event.data;
+                    let sender = "Other"; 
+                    if (fullMessage.includes(":")) {
+                        const parts = fullMessage.split(':', 2);
+                        sender = parts[0].trim();
+                        const message = parts[1].trim();
+                        if (sender !== userName) {
+                            displayMessage(sender, message, false, false);
+                        }
+                    }
                  }
             }
-        };
+        }
+
 
         function sendMessage() {
             const input = document.getElementById('input');
             const message = input.value.trim();
             
-            if (message !== "" && userName !== null) {
+            if (message !== "" && userName !== null && ws.readyState === WebSocket.OPEN) {
                 const formattedMessage = `${userName}: ${message}`;
                 
                 ws.send(formattedMessage);
@@ -391,15 +452,16 @@
             }
         });
 
-        // التحقق عند تحميل الصفحة من وجود طلب معلق
+        // التحقق عند تحميل الصفحة من وجود طلب معلق والبدء بالاتصال
         window.onload = function() {
+            connectWebSocket(); // 🚨 البدء بالاتصال عند تحميل الصفحة
+            
             if (localStorage.getItem('pendingUserName')) {
                 modal.style.display = 'none';
                 statusModal.style.display = 'flex';
             }
         }
-        //qmcgyyoxrcplgcrr
+        
     </script>
 </body>
 </html>
-
