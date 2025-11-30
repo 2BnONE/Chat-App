@@ -10,23 +10,27 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // -------------------------------------------------------------------
-// 1. Configuration and Constants (Deployment Ready)
+// 1. Configuration and Constants (Modified for ETIMEDOUT Fix)
 // -------------------------------------------------------------------
 
 const ADMIN_EMAIL = 'salahabd.735113@gmail.com'; 
 
-// يستخدم متغير البيئة PUBLIC_URL الذي تحدده منصة الاستضافة لروابط الإيميل
 const SERVER_BASE_URL = process.env.PUBLIC_URL || 'http://localhost:3000';    
 
-// Nodemailer setup - CRITICAL CHANGE: Using Environment Variables
+// 🚨 التعديل الحاسم: استخدام إعدادات صريحة لـ Gmail SMTP لضمان الاتصال
 const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+    // استخدام المضيف الرسمي لـ Gmail
+    host: 'smtp.gmail.com',
+    // استخدام المنفذ 465 (SSL) وهو الأفضل للاستضافات
+    port: 465, 
+    // يجب أن تكون true عند استخدام المنفذ 465
+    secure: true, 
     auth: {
-        // 🚨 سيتم قراءة الإيميل المرسل من متغير بيئة اسمه EMAIL_USER
         user: process.env.EMAIL_USER, 
-        // 🚨 سيتم قراءة كلمة مرور التطبيق من متغير بيئة اسمه EMAIL_PASS
         pass: process.env.EMAIL_PASS           
-    }
+    },
+    // زيادة زمن الانتظار إلى 60 ثانية لحل مشكلة Timeout
+    timeout: 60000 
 });
 
 // -------------------------------------------------------------------
