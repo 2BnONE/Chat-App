@@ -19,7 +19,6 @@
             background-color: #282845; 
             font-family: Arial, sans-serif;
             display: flex;
-            /* استخدام Flexbox لتنظيم العناصر عمودياً */
             flex-direction: column; 
             margin: 0;
             color: #fff;
@@ -33,18 +32,18 @@
             background-color: #282845; 
             padding: 10px; 
             border-radius: 0; 
-            box-shadow: none; 
+            box-sizing: border-box; 
+            
+            /* 🚨 تأثير النيون على الحاوية */
+            box-shadow: 0 0 50px rgba(91, 91, 255, 0.5); 
+            transition: all 0.3s ease-in-out; 
+            filter: none; 
+            pointer-events: none;
             
             display: flex;
             flex-direction: column;
-            box-sizing: border-box; 
-            
-            transition: none;
-            filter: blur(5px);
-            pointer-events: none;
         }
         
-        /* تفعيل الواجهة بعد إدخال الاسم */
         #chat-container.active { 
             filter: none;
             pointer-events: auto;
@@ -55,7 +54,7 @@
         /* ------------------------------------- */
         #messages {
             list-style: none;
-            flex-grow: 1; /* ينمو لملء المساحة المتبقية فوق صندوق الإدخال */
+            flex-grow: 1; 
             overflow-y: auto;
             padding: 15px;
             margin: 0;
@@ -76,23 +75,25 @@
             transition: 0.3s;
             word-wrap: break-word;
         }
+        
+        /* 🚨 إضاءة نيون ذهبية لاسم المستخدم */
         #messages li strong {
             color: #ffcc00; 
             margin-right: 5px;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.8); 
         }
 
-        /* تنسيقات الرسائل المُرسلة (الزرقاء - على اليمين) */
         #messages li.self {
             background-color: #5b5bff; 
             text-align: right;
             margin-left: auto; 
             width: fit-content; 
             max-width: 80%;
+            /* 🚨 ظل نيون خفيف للرسائل المرسلة */
             box-shadow: 
-                -5px 5px 10px rgba(0, 0, 0, 0.5), 
-                5px 5px 10px rgba(91, 91, 255, 0.3);
+                0 0 5px rgba(91, 91, 255, 0.8), 
+                5px 5px 10px rgba(0, 0, 0, 0.6);
         }
-        /* تنسيقات الرسائل المستقبلة (الخضراء - على اليسار) */
         #messages li.other {
             background-color: #4CAF50; 
             text-align: left;
@@ -101,9 +102,8 @@
             max-width: 80%;
             box-shadow: 
                 5px 5px 10px rgba(0, 0, 0, 0.5), 
-                -5px 5px 10px rgba(76, 175, 80, 0.3);
+                -5px -5px 10px rgba(76, 175, 80, 0.3);
         }
-        /* رسائل النظام */
         #messages li.system {
             background-color: #2d2d44;
             text-align: center;
@@ -113,18 +113,18 @@
         }
         
         /* ------------------------------------- */
-        /* صندوق الإدخال (Textarea) */
+        /* صندوق الإدخال (Textarea) وزر الإرسال */
         /* ------------------------------------- */
         #input-box {
             display: flex;
             margin-top: 15px;
             padding-bottom: 10px; 
-            align-items: flex-end; /* لمحاذاة زر الإرسال مع الـ textarea */
+            align-items: flex-end; 
         }
         
         #input {
             flex: 1;
-            padding: 10px;
+            padding: 10px; 
             border-radius: 10px;
             border: none;
             outline: none;
@@ -135,34 +135,37 @@
                 inset 3px 3px 6px rgba(0, 0, 0, 0.7), 
                 inset -3px -3px 6px rgba(71, 71, 112, 0.2);
             
-            /* 🚨 التعديل للسماح بالمرونة: */
-            resize: none; /* يمنع المستخدم من تغيير حجمها يدوياً */
-            overflow-y: hidden; /* يخفي شريط التمرير الرأسي */
-            line-height: 1.4; /* لضبط ارتفاع كل سطر */
-            min-height: 40px; /* الارتفاع الأدنى (تقريباً سطر واحد) */
+            resize: none; 
+            overflow-y: hidden; 
+            line-height: 1.4; 
+            min-height: 40px; 
         }
         
         #send-btn {
             margin-left: 10px;
-            /* 🚨 استخدام padding-top لضبط الارتفاع مع الـ textarea */
-            padding: 10px 20px; 
+            padding: 0 15px; 
             background: #5b5bff; 
             border: none;
             border-radius: 10px;
             cursor: pointer;
             color: #fff;
             font-weight: bold;
-            box-shadow: 
-                5px 5px 15px rgba(0, 0, 0, 0.5),
-                -5px -5px 15px rgba(91, 91, 255, 0.3);
             transition: 0.2s;
-            height: fit-content; /* يجعل ارتفاع الزر يتكيف مع المحتوى */
+            height: auto; 
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+            
+            /* 🚨 تأثير النيون على زر الإرسال */
+            box-shadow: 
+                0 0 5px #5b5bff,
+                0 0 10px #5b5bff,
+                0 0 20px #5b5bff,
+                0 0 40px rgba(91, 91, 255, 0.7); 
         }
         #send-btn:active {
             transform: scale(0.98);
-            box-shadow: 
-                inset 3px 3px 10px rgba(0, 0, 0, 0.7), 
-                inset -3px -3px 10px rgba(91, 91, 255, 0.1);
+            box-shadow: 0 0 5px #5b5bff; 
         }
 
         /* ------------------------------------- */
@@ -248,7 +251,7 @@
         let ws = null; 
         let userName = null; 
         const messagesContainer = document.getElementById('messages');
-        const inputField = document.getElementById('input'); // 🚨 تم تعريف حقل الإدخال
+        const inputField = document.getElementById('input'); 
         
         // عناصر الواجهة
         const modal = document.getElementById('name-modal');
@@ -256,16 +259,17 @@
         const submitBtn = document.getElementById('submit-name-btn');
         const errorMessage = document.getElementById('error-message');
         const chatContainer = document.getElementById('chat-container');
+        const sendButton = document.getElementById('send-btn'); 
+
         
         const reservedNames = ["النظام", "System", "Server", "Admin"]; 
-        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // الرابط الثابت
+        const SERVER_URL = 'chat-app-xz3c.onrender.com'; 
 
         // -----------------------------------------------------
         // وظائف الاتصال 
         // -----------------------------------------------------
 
         function connectWebSocket() {
-            // استخدام wss:// للاتصال الآمن
             ws = new WebSocket('wss://' + SERVER_URL); 
             
             ws.onopen = () => {
@@ -322,12 +326,12 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight; 
         }
         
-        // 🚨 دالة التوسع التلقائي 
+        // دالة التوسع التلقائي وتزامن الارتفاع مع زر الإرسال 
         function autoExpand(field) {
-            // قم بإعادة تعيين الارتفاع إلى الارتفاع الأدنى (سطر واحد)
+            
+            // 1. حساب الارتفاع المطلوب للـ textarea
             field.style.height = 'inherit';
             
-            // حساب الارتفاع المطلوب
             const computed = window.getComputedStyle(field);
             const height = parseInt(computed.getPropertyValue('border-top-width'), 10)
                          + parseInt(computed.getPropertyValue('padding-top'), 10)
@@ -335,9 +339,13 @@
                          + parseInt(computed.getPropertyValue('padding-bottom'), 10)
                          + parseInt(computed.getPropertyValue('border-bottom-width'), 10);
             
+            // 2. تطبيق الارتفاع على الـ textarea
             field.style.height = `${height}px`;
             
-            // 🚨 تمرير شاشة الرسائل للأسفل عند التوسع (لتجنب إخفاءها)
+            // 3. تطبيق نفس الارتفاع على زر الإرسال (#send-btn)
+            sendButton.style.height = `${height}px`;
+
+            // 4. تمرير شاشة الرسائل للأسفل
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
@@ -349,8 +357,9 @@
                 return false;
             }
             
-            if (/\s|[^a-zA-Z0-9_]/.test(name)) {
-                errorMessage.textContent = "الاسم يجب أن يحتوي على أحرف وأرقام و_ فقط.";
+            // 🚨 التحقق من الأحرف: يسمح باللاتينية والأرقام و _ والأحرف العربية
+            if (/\s|[^a-zA-Z0-9_\u0621-\u064A]/.test(name)) { 
+                errorMessage.textContent = "الاسم يجب أن يحتوي على أحرف وأرقام عربية/لاتينية و_ فقط.";
                 return false;
             }
             
@@ -364,12 +373,10 @@
                 return false;
             }
             
-            // الانضمام الفوري:
             userName = name;
             modal.style.display = 'none';
             chatContainer.classList.add('active'); 
             
-            // إرسال رسالة الانضمام للخادم
             ws.send(JSON.stringify({ 
                 type: 'join', 
                 name: name 
@@ -388,9 +395,8 @@
                 if (data.type === 'system') {
                     displayMessage("النظام", data.message, true);
                 } else if (data.type === 'chat') {
-                    // عرض رسائل الدردشة المرسلة من الآخرين
                     if (data.sender !== userName) { 
-                         displayMessage(data.sender, data.message, false, false, true); // استخدام isOther = true
+                         displayMessage(data.sender, data.message, false, false, true);
                     }
                 }
             } catch (e) {
@@ -402,13 +408,10 @@
             const message = inputField.value.trim();
             
             if (message !== "" && userName !== null && ws.readyState === WebSocket.OPEN) {
-                // إرسال محتوى الرسالة الخام
                 ws.send(message); 
                 
-                // عرض الرسالة محلياً فوراً (تطبيق فئة 'self')
                 displayMessage(userName, message, false, true); 
                 
-                // 🚨 إعادة تعيين حقل الإدخال إلى قيمة فارغة وإعادة تعيين الارتفاع
                 inputField.value = '';
                 autoExpand(inputField); 
                 
@@ -428,25 +431,20 @@
             }
         });
         
-        // 🚨 تعديل معالجة ضغط Enter في الـ textarea
         inputField.addEventListener('keypress', function(e) {
-            // إرسال الرسالة عند ضغط Enter (بدون Shift)
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // منع إضافة سطر جديد افتراضياً
+                e.preventDefault(); 
                 sendMessage();
             }
-            // إذا ضغط المستخدم على Shift + Enter، سيتم إضافة سطر جديد والسماح بالتوسع التلقائي
         });
         
         window.onload = function() {
             connectWebSocket(); 
             
-            // ربط التوسع التلقائي بحقل الإدخال عند كل إدخال
             inputField.addEventListener('input', function() {
                 autoExpand(inputField);
             });
             
-            // التأكد من أن الحقل يبدأ بالارتفاع الصحيح
             autoExpand(inputField);
         }
         
