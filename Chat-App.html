@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> 
     <title>Chat-App - دردشة فورية</title>
     <style>
         /* ------------------------------------- */
@@ -11,32 +11,32 @@
         html, body {
             height: 100%;
             width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             background-color: #282845; 
             font-family: Arial, sans-serif;
             display: flex;
-            /* تغيير المحاذاة لملء الشاشة */
-            justify-content: flex-start; 
-            align-items: flex-start;
+            /* 🚨 استخدام Flexbox لتنظيم العناصر عمودياً */
+            flex-direction: column; 
             margin: 0;
             color: #fff;
-            overflow: hidden; 
-            position: fixed; /* لتثبيت الأبعاد على الهاتف */
-            top: 0;
-            left: 0;
+            /* إزالة overflow: hidden للسماح بإعادة حساب الارتفاع عند ظهور الكيبورد */
         }
 
         #chat-container {
-            width: 100%; /* ملء العرض */
-            height: 100%; /* ملء الارتفاع */
-            background-color: #282845; 
-            padding: 10px; /* تقليل الحشو لزيادة مساحة المحتوى */
-            border-radius: 0; /* إزالة الزوايا الدائرية */
-            box-shadow: none; /* إزالة الظل الخارجي */
+            width: 100%; 
+            /* 🚨 يجب استخدام min-height أو flex-grow: 1 لملء المساحة المتاحة */
+            min-height: 100vh; 
+            flex-grow: 1; /* السماح له بالنمو في الجسم المرن */
             
-            /* تفعيل تنسيق Flex لجعل الرسائل تملأ المساحة */
+            background-color: #282845; 
+            padding: 10px; 
+            border-radius: 0; 
+            box-shadow: none; 
+            
             display: flex;
             flex-direction: column;
             box-sizing: border-box; 
@@ -57,7 +57,7 @@
         /* ------------------------------------- */
         #messages {
             list-style: none;
-            flex-grow: 1; /* الأهم: اجعله ينمو لملء المساحة المتبقية */
+            flex-grow: 1; /* الأهم: ينمو لملء المساحة المتبقية فوق صندوق الإدخال */
             overflow-y: auto;
             padding: 15px;
             margin: 0;
@@ -115,11 +115,12 @@
         }
         
         /* ------------------------------------- */
-        /* صندوق الإدخال */
+        /* صندوق الإدخال (يظل في الأسفل) */
         /* ------------------------------------- */
         #input-box {
             display: flex;
             margin-top: 15px;
+            padding-bottom: 10px; 
         }
         #input {
             flex: 1;
@@ -263,7 +264,6 @@
             
             ws.onclose = () => {
                 console.log("WebSocket Disconnected. Attempting to reconnect...");
-                // آلية بسيطة لإعادة الاتصال
                 if (userName === null) {
                     setTimeout(connectWebSocket, 5000);
                 } else {
@@ -305,12 +305,12 @@
                  li.innerHTML = `<strong>${safeSender}:</strong> ${safeMessage}`;
                  li.classList.add('other'); 
             } else { 
-                // تنسيق احتياطي
                  li.innerHTML = `<strong>${safeSender}:</strong> ${safeMessage}`;
             }
             
             messagesContainer.appendChild(li);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            // 🚨 الأهم: التأكد من تمرير الشاشة للأسفل لرؤية الرسالة الأخيرة
+            messagesContainer.scrollTop = messagesContainer.scrollHeight; 
         }
 
         function validateAndSetUsername() {
@@ -383,6 +383,8 @@
                 displayMessage(userName, message, false, true); 
                 
                 input.value = '';
+                // 🚨 عند إرسال رسالة، قم بتركيز على حقل الإدخال مرة أخرى
+                input.focus();
             }
         }
         
