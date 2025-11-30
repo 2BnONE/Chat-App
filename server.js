@@ -10,26 +10,30 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // -------------------------------------------------------------------
-// 1. Configuration and Constants (Modified for ETIMEDOUT Fix)
+// 1. Configuration and Constants (FINAL DEPLOYMENT CONFIG)
 // -------------------------------------------------------------------
 
 const ADMIN_EMAIL = 'salahabd.735113@gmail.com'; 
 
+// استخدام الرابط العام للمشروع من متغيرات البيئة
 const SERVER_BASE_URL = process.env.PUBLIC_URL || 'http://localhost:3000';    
 
-// 🚨 التعديل الحاسم: استخدام إعدادات صريحة لـ Gmail SMTP لضمان الاتصال
+// Nodemailer setup - FIXING ETIMEDOUT (Using Port 587)
 const transporter = nodemailer.createTransport({
     // استخدام المضيف الرسمي لـ Gmail
     host: 'smtp.gmail.com',
-    // استخدام المنفذ 465 (SSL) وهو الأفضل للاستضافات
-    port: 465, 
-    // يجب أن تكون true عند استخدام المنفذ 465
-    secure: true, 
+    // 🚨 الحل: استخدام المنفذ 587 (TLS)
+    port: 587, 
+    // يجب أن تكون false عند استخدام المنفذ 587
+    secure: false, 
+    // تفعيل STARTTLS
+    requireTLS: true, 
     auth: {
+        // قراءة الإيميل وكلمة المرور من متغيرات البيئة السرية
         user: process.env.EMAIL_USER, 
         pass: process.env.EMAIL_PASS           
     },
-    // زيادة زمن الانتظار إلى 60 ثانية لحل مشكلة Timeout
+    // زيادة زمن الانتظار لحل مشكلة Timeout
     timeout: 60000 
 });
 
@@ -81,7 +85,8 @@ function sendApprovalEmail(userId, userName) {
         if (error) {
             console.error("❌ Error sending email:", error);
         } else {
-            console.log(`✅ Approval email sent for ${userName}`);
+            // 🚨 رسالة تأكيد النجاح (إذا وصلت إلى هنا، فقد تم إرسال الإيميل)
+            console.log(`✅ Approval email sent for ${userName}`); 
         }
     });
 }
