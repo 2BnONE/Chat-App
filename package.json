@@ -1,18 +1,8 @@
 {
   "name": "chat-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "express": "^5.1.0",
-    "nodemailer": "^7.0.11",
-    "ws": "^8.18.3"
+    "start": "node server.js"
   }
 }
