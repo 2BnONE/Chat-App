@@ -2,205 +2,109 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const WebSocket = require('ws');
-const nodemailer = require('nodemailer'); 
-const url = require('url'); 
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// -------------------------------------------------------------------
-// 1. Configuration and Constants (FINAL DEPLOYMENT CONFIG)
-// -------------------------------------------------------------------
-
-const ADMIN_EMAIL = 'salahabd.735113@gmail.com'; 
-
-// استخدام الرابط العام للمشروع من متغيرات البيئة
-const SERVER_BASE_URL = process.env.PUBLIC_URL || 'http://localhost:3000';    
-
-// Nodemailer setup - FIXING ETIMEDOUT (Using Port 587)
-const transporter = nodemailer.createTransport({
-    // استخدام المضيف الرسمي لـ Gmail
-    host: 'smtp.gmail.com',
-    // 🚨 الحل: استخدام المنفذ 587 (TLS)
-    port: 587, 
-    // يجب أن تكون false عند استخدام المنفذ 587
-    secure: false, 
-    // تفعيل STARTTLS
-    requireTLS: true, 
-    auth: {
-        // قراءة الإيميل وكلمة المرور من متغيرات البيئة السرية
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS           
-    },
-    // زيادة زمن الانتظار لحل مشكلة Timeout
-    timeout: 60000 
-});
+// Map لتخزين العملاء المتصلين وأسمائهم (لربط اسم المستخدم بالاتصال)
+const clients = new Map(); 
 
 // -------------------------------------------------------------------
-// 2. Server State (To store requests and approved users)
-// -------------------------------------------------------------------
-
-let nextUserId = 100;
-const pendingRequests = {}; 
-const approvedClients = {}; 
-
-// -------------------------------------------------------------------
-// 3. Email Sending Function
-// -------------------------------------------------------------------
-
-function sendApprovalEmail(userId, userName) {
-    const approvalLink = `${SERVER_BASE_URL}/approve?user_id=${userId}&action=ACCEPT`;
-    const rejectionLink = `${SERVER_BASE_URL}/approve?user_id=${userId}&action=REJECT`;
-
-    const mailOptions = {
-        from: `ChatApp Notifier <${transporter.options.auth.user}>`,
-        to: ADMIN_EMAIL,
-        subject: `🚨 New Join Request: ${userName}`,
-        html: `
-            <h2>New Chat Room Join Request</h2>
-            <p>Username: <strong>${userName}</strong></p>
-            <p>Please approve or reject by clicking the appropriate button:</p>
-            <table cellspacing="0" cellpadding="0" style="width: 100%;">
-                <tr>
-                    <td style="padding: 15px 0 10px 0;">
-                        <table cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-                            <tr>
-                                <td align="center" style="border-radius: 5px; background-color: #4CAF50; margin-right: 20px;">
-                                    <a href="${approvalLink}" target="_blank" style="padding: 10px 20px; border: 1px solid #4CAF50; border-radius: 5px; font-family: Arial, sans-serif; font-size: 15px; color: #ffffff; text-decoration: none; display: inline-block;">Accept (ACCEPT)</a>
-                                </td>
-                                <td style="width: 20px;"></td>
-                                <td align="center" style="border-radius: 5px; background-color: #F44336;">
-                                    <a href="${rejectionLink}" target="_blank" style="padding: 10px 20px; border: 1px solid #F44336; border-radius: 5px; font-family: Arial, sans-serif; font-size: 15px; color: #ffffff; text-decoration: none; display: inline-block;">Reject (REJECT)</a>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-        `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.error("❌ Error sending email:", error);
-        } else {
-            console.log(`✅ Approval email sent for ${userName}`); 
-        }
-    });
-}
-
-// -------------------------------------------------------------------
-// 4. HTTP Handler (For Approval and Rejection Links)
-// -------------------------------------------------------------------
-
-app.get('/approve', (req, res) => {
-    const userId = parseInt(req.query.user_id);
-    const action = req.query.action; 
-
-    const request = pendingRequests[userId];
-
-    if (!request) {
-        return res.send('<h1>❌ Error: Pending request not found or already processed.</h1>'); 
-    }
-
-    if (action === 'ACCEPT') {
-        const response = JSON.stringify({ 
-            type: 'approval_status', 
-            status: 'approved',
-            name: request.name 
-        });
-        request.ws.send(response);
-        
-        approvedClients[userId] = request.ws;
-        approvedClients[userId].userName = request.name;
-
-        delete pendingRequests[userId];
-        
-        return res.send(`
-            <script>
-                alert("SUCCESS: User ${request.name} approved. You can close this window now.");
-                window.close();
-            </script>
-            <h1>✅ User Approved!</h1>
-        `); 
-    } 
-    
-    if (action === 'REJECT') {
-        request.ws.send(JSON.stringify({ 
-            type: 'approval_status', 
-            status: 'rejected' 
-        }));
-        delete pendingRequests[userId];
-        
-        return res.send(`
-            <script>
-                alert("REJECTED: User ${request.name} was rejected. You can close this window now.");
-                window.close();
-            </script>
-            <h1>🚫 User Rejected!</h1>
-        `);
-    }
-
-    return res.send('<h1>⚠️ Invalid action.</h1>');
-});
-
-
-// -------------------------------------------------------------------
-// 5. WebSocket Handler (For receiving messages and join requests)
+// 1. WebSocket Handler 
 // -------------------------------------------------------------------
 
 wss.on('connection', function connection(ws) {
-    ws.userId = nextUserId++; 
-    console.log(`🔌 New connection established: ID ${ws.userId}`);
+    console.log('🔌 New client connected.');
 
+    // عند استقبال رسالة
     ws.on('message', function incoming(message) {
         const text = message.toString('utf8');
         
-        try {
-            const data = JSON.parse(text);
-
-            if (data.type === 'join_request') {
-                const userName = data.name;
+        // 🚨 الرسالة الأولى هي طلب الانضمام
+        if (!clients.has(ws)) {
+            try {
+                const data = JSON.parse(text);
                 
-                pendingRequests[ws.userId] = { name: userName, ws: ws };
-                
-                sendApprovalEmail(ws.userId, userName);
-                console.log(`✉️ Join request sent to admin from: ${userName}`);
-
-            } 
-        } catch (e) {
-            if (approvedClients[ws.userId]) {
-                const userName = approvedClients[ws.userId].userName || 'Unknown User';
-                const messageToSend = `${userName}: ${text}`;
-
-                wss.clients.forEach(function each(client) {
-                    if (client.readyState === WebSocket.OPEN && approvedClients[client.userId]) {
-                        client.send(messageToSend); 
-                    }
-                });
-                console.log(`📢 Message broadcasted from ${userName}`);
+                if (data.type === 'join') {
+                    const userName = data.name;
+                    clients.set(ws, { name: userName });
+                    
+                    const systemMessage = JSON.stringify({
+                        type: 'system',
+                        message: `انضم ${userName} إلى الدردشة.`,
+                    });
+                    
+                    // إعلان انضمام المستخدم الجديد للجميع
+                    wss.clients.forEach(function each(client) {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(systemMessage);
+                        }
+                    });
+                    console.log(`✅ User joined: ${userName}`);
+                }
+            } catch (e) {
+                console.error("❌ First message was not a join request:", text);
             }
+            return;
         }
+
+        // 💬 الرسائل اللاحقة (رسائل الدردشة)
+        const clientData = clients.get(ws);
+        const userName = clientData ? clientData.name : 'Unknown User';
+        
+        // تنسيق رسالة الدردشة وإرسالها كـ JSON
+        const chatMessage = JSON.stringify({
+            type: 'chat',
+            sender: userName,
+            message: text, 
+        });
+
+        // بث الرسالة المنسقة للجميع
+        wss.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(chatMessage);
+            }
+        });
+        console.log(`📢 Message from ${userName}: ${text}`);
     });
 
+    // عند قطع الاتصال
     ws.on('close', () => {
-        delete pendingRequests[ws.userId];
-        delete approvedClients[ws.userId];
-        console.log(`🚫 Connection closed: ID ${ws.userId}`);
+        const clientData = clients.get(ws);
+        if (clientData) {
+            const userName = clientData.name;
+            clients.delete(ws);
+            
+            const systemMessage = JSON.stringify({
+                type: 'system',
+                message: `غادر ${userName} الدردشة.`,
+            });
+            
+            // إعلان المغادرة
+            wss.clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(systemMessage);
+                }
+            });
+            console.log(`🚫 Client disconnected: ${userName}`);
+        } else {
+             clients.delete(ws);
+             console.log('🚫 Client disconnected (before joining)');
+        }
     });
 });
 
 // -------------------------------------------------------------------
-// 6. Start the Server
+// 2. Start the Server
 // -------------------------------------------------------------------
 
+// تقديم ملف HTML
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'Chat-App.html')); 
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`✨ Approval server is now running on port: ${PORT}`);
-    console.log(`Please open your browser at the following link: ${SERVER_BASE_URL}`);
+    console.log(`✨ Chat server is now running on port: ${PORT}`);
 });

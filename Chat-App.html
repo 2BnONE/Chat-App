@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8" />
-    <title>Chat-App - انتظار الموافقة</title>
+    <title>Chat-App - دردشة فورية</title>
     <style>
         /* ------------------------------------- */
         /* التنسيقات العامة والدردشة (النسخة الأصلية) */
@@ -30,7 +30,7 @@
             filter: blur(5px);
             pointer-events: none;
         }
-        /* تفعيل الواجهة بعد الموافقة */
+        /* تفعيل الواجهة بعد إدخال الاسم */
         #chat-container.active { 
             filter: none;
             pointer-events: auto;
@@ -122,9 +122,9 @@
         }
 
         /* ------------------------------------- */
-        /* تنسيقات النوافذ المشروطة (Modal & Status) */
+        /* تنسيقات النافذة المشروطة (Modal) */
         /* ------------------------------------- */
-        #name-modal, #status-modal { /* تطبيق تنسيق موحد لكلتا النافذتين */
+        #name-modal { 
             position: fixed;
             top: 0;
             left: 0;
@@ -158,10 +158,10 @@
             font-size: 16px;
             text-align: center;
         }
-        #submit-name-btn, #try-again-btn { /* تنسيقات الأزرار في Modal/Status */
+        #submit-name-btn { /* تنسيقات الأزرار في Modal */
             width: 100%;
             padding: 12px;
-            background: #5b5bff;
+            background: #4CAF50;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -170,7 +170,7 @@
             font-size: 16px;
             transition: background 0.2s;
         }
-        #submit-name-btn:hover, #try-again-btn:hover { background: #4a4adf; }
+        #submit-name-btn:hover { background: #45a049; }
         #error-message {
             color: #ff3b30;
             margin-top: 10px;
@@ -187,18 +187,7 @@
             <p>الرجاء إدخال اسم مستخدم للمتابعة:</p>
             <input type="text" id="username-input" placeholder="اسم المستخدم" autocomplete="off" />
             <div id="error-message"></div>
-            <button id="submit-name-btn">طلب الانضمام</button>
-        </div>
-    </div>
-    
-    <div id="status-modal" style="display:none;">
-        <div id="modal-content">
-            <h2>حالة الطلب</h2>
-            <p>طلبك قيد التنفيذ.</p>
-            <div id="current-status-message" style="margin: 15px 0;">
-                <p>بانتظار الموافقة...</p>
-            </div>
-            <button id="try-again-btn" style="display:none;">محاولة باسم آخر</button>
+            <button id="submit-name-btn">انضمام</button>
         </div>
     </div>
     
@@ -222,15 +211,13 @@
         const submitBtn = document.getElementById('submit-name-btn');
         const errorMessage = document.getElementById('error-message');
         const chatContainer = document.getElementById('chat-container');
-        const statusModal = document.getElementById('status-modal');
-        const currentStatusMessage = document.getElementById('current-status-message');
-        const tryAgainBtn = document.getElementById('try-again-btn');
-
-        const reservedNames = ["Admin", "System", "Server", "Root", "God"]; 
-        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // يجب التأكد من هذا الرابط
+        // تم حذف عناصر حالة الطلب
+        
+        const reservedNames = ["النظام", "System", "Server", "Admin"]; 
+        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // الرابط الثابت
 
         // -----------------------------------------------------
-        // وظائف الاتصال والتحقق 
+        // وظائف الاتصال 
         // -----------------------------------------------------
 
         function connectWebSocket() {
@@ -239,25 +226,15 @@
             
             ws.onopen = () => {
                 console.log("WebSocket Connected.");
-                const name = localStorage.getItem('pendingUserName');
-                
-                // إعادة إرسال طلب الانضمام إذا كان معلقاً
-                if (name) {
-                    currentStatusMessage.innerHTML = `<p style="color: #00eaff;">حالة الطلب: **تم استعادة الاتصال** وإعادة إرسال طلب الموافقة...</p>`;
-                    ws.send(JSON.stringify({ 
-                        type: 'join_request', 
-                        name: name 
-                    }));
-                }
             };
             
             ws.onclose = () => {
-                console.log("WebSocket Disconnected.");
-                
-                // آلية إعادة الاتصال التلقائي (كل 5 ثوان)
-                if (localStorage.getItem('pendingUserName')) {
-                    currentStatusMessage.innerHTML = `<p style="color: #ff3b30;">**تم فقدان الاتصال!** محاولة إعادة الاتصال في 5 ثواني...</p>`;
-                    setTimeout(connectWebSocket, 5000); 
+                console.log("WebSocket Disconnected. Attempting to reconnect...");
+                // آلية بسيطة لإعادة الاتصال
+                if (userName === null) {
+                    setTimeout(connectWebSocket, 5000);
+                } else {
+                    displayMessage("النظام", "تم فقدان الاتصال بالخادم. حاول تحديث الصفحة.", true);
                 }
             };
             
@@ -313,7 +290,7 @@
             }
             
             if (reservedNames.map(n => n.toLowerCase()).includes(name.toLowerCase())) {
-                errorMessage.textContent = "عذراً، هذا الاسم محجوز/مستخدم بالفعل.";
+                errorMessage.textContent = "عذراً، هذا الاسم محجوز.";
                 return false;
             }
 
@@ -322,18 +299,17 @@
                 return false;
             }
             
+            // 🚨 الانضمام الفوري:
+            userName = name;
             modal.style.display = 'none';
-            statusModal.style.display = 'flex';
-            currentStatusMessage.innerHTML = `<p style="color: #ffcc00;">حالة الطلب: **قيد الانتظار**...</p>`;
-            tryAgainBtn.style.display = 'none';
+            chatContainer.classList.add('active'); 
             
-            // إرسال طلب الانضمام للخادم
+            // إرسال رسالة الانضمام للخادم
             ws.send(JSON.stringify({ 
-                type: 'join_request', 
+                type: 'join', 
                 name: name 
             }));
             
-            localStorage.setItem('pendingUserName', name);
             return true; 
         }
 
@@ -344,59 +320,16 @@
             try {
                 const data = JSON.parse(event.data);
                 
-                if (data.type === 'approval_status') {
-                    
-                    if (data.status === 'approved') {
-                        // النجاح: تعيين الاسم وتفعيل الدردشة
-                        userName = localStorage.getItem('pendingUserName'); 
-                        localStorage.removeItem('pendingUserName');
-                        
-                        statusModal.style.display = 'none';
-                        chatContainer.classList.add('active'); 
-                        
-                        displayMessage("System", `تم قبول انضمامك. مرحباً بك يا ${userName}!`, true);
-
-                    } else if (data.status === 'rejected') {
-                        // الفشل: عرض رسالة الرفض
-                        localStorage.removeItem('pendingUserName');
-                        
-                        currentStatusMessage.innerHTML = `<p style="color:#ff3b30;">**تم رفض طلبك** لدخول غرفة الدردشة.</p>`;
-                        tryAgainBtn.style.display = 'block';
-
-                    } 
-                }
-                // معالجة رسائل الدردشة العادية (فقط بعد الموافقة)
-                else if (userName !== null) {
-                    const fullMessage = event.data;
-                    let sender = "Other"; 
-
-                    if (fullMessage.includes(":")) {
-                        const parts = fullMessage.split(':', 2);
-                        sender = parts[0].trim();
-                        const message = parts[1].trim();
-                        
-                        // عرض رسائل الآخرين فقط
-                        if (sender !== userName) {
-                            displayMessage(sender, message, false, false);
-                        }
-                    } else {
-                        displayMessage(sender, fullMessage);
+                if (data.type === 'system') {
+                    displayMessage("النظام", data.message, true);
+                } else if (data.type === 'chat') {
+                    // عرض رسائل الدردشة المرسلة من الآخرين
+                    if (data.sender !== userName) { 
+                         displayMessage(data.sender, data.message, false, false);
                     }
                 }
             } catch (e) {
-                 // إذا كانت رسالة نصية عادية (بعد الموافقة)
-                 if (userName !== null) {
-                    const fullMessage = event.data;
-                    let sender = "Other"; 
-                    if (fullMessage.includes(":")) {
-                        const parts = fullMessage.split(':', 2);
-                        sender = parts[0].trim();
-                        const message = parts[1].trim();
-                        if (sender !== userName) {
-                            displayMessage(sender, message, false, false);
-                        }
-                    }
-                 }
+                 console.error("Received non-JSON message:", event.data);
             }
         }
 
@@ -406,10 +339,10 @@
             const message = input.value.trim();
             
             if (message !== "" && userName !== null && ws.readyState === WebSocket.OPEN) {
-                const formattedMessage = `${userName}: ${message}`;
+                // إرسال محتوى الرسالة الخام، والخادم يقوم بتنسيقها
+                ws.send(message); 
                 
-                ws.send(formattedMessage);
-                
+                // عرض الرسالة محلياً فوراً (لإعطاء انطباع بالسرعة)
                 displayMessage(userName, message, false, true); 
                 
                 input.value = '';
@@ -427,12 +360,6 @@
                 validateAndSetUsername();
             }
         });
-
-        tryAgainBtn.addEventListener('click', function() {
-            statusModal.style.display = 'none';
-            modal.style.display = 'flex'; 
-            usernameInput.value = '';
-        });
         
         document.getElementById('input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -442,11 +369,6 @@
 
         window.onload = function() {
             connectWebSocket(); 
-            
-            if (localStorage.getItem('pendingUserName')) {
-                modal.style.display = 'none';
-                statusModal.style.display = 'flex';
-            }
         }
         
     </script>
