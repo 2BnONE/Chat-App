@@ -101,17 +101,28 @@
         }
         
         /* ------------------------------------- */
-        /* تنسيقات الرسائل المُضافة (self / system) */
+        /* تنسيقات الرسائل المُضافة (self / other / system) */
         /* ------------------------------------- */
         #messages li.self {
-            background-color: #5b5bff;
+            background-color: #5b5bff; /* لون خلفية الرسائل المرسلة (الأزرق) */
             text-align: right;
-            margin-left: auto; 
+            margin-left: auto; /* لتدفع الرسالة إلى اليمين */
             width: fit-content; 
             max-width: 80%;
             box-shadow: 
                 -5px 5px 10px rgba(0, 0, 0, 0.5), 
                 5px 5px 10px rgba(91, 91, 255, 0.3);
+        }
+        /* 🚨 تنسيقات الرسائل المستقبلة (الخضراء) 🚨 */
+        #messages li.other {
+            background-color: #4CAF50; /* لون خلفية الرسائل المستقبلة (الأخضر) */
+            text-align: left;
+            margin-right: auto; /* لتدفع الرسالة إلى اليسار */
+            width: fit-content; 
+            max-width: 80%;
+            box-shadow: 
+                5px 5px 10px rgba(0, 0, 0, 0.5), 
+                -5px 5px 10px rgba(76, 175, 80, 0.3);
         }
         #messages li.system {
             background-color: #2d2d44;
@@ -211,7 +222,6 @@
         const submitBtn = document.getElementById('submit-name-btn');
         const errorMessage = document.getElementById('error-message');
         const chatContainer = document.getElementById('chat-container');
-        // تم حذف عناصر حالة الطلب
         
         const reservedNames = ["النظام", "System", "Server", "Admin"]; 
         const SERVER_URL = 'chat-app-xz3c.onrender.com'; // الرابط الثابت
@@ -257,7 +267,7 @@
                       .replace(/'/g, '&#039;');
         }
 
-        function displayMessage(sender, message, isSystem = false, isSelf = false) {
+        function displayMessage(sender, message, isSystem = false, isSelf = false, isOther = false) { // 🚨 تم إضافة isOther
             const li = document.createElement('li');
             const safeMessage = escapeHTML(message);
             const safeSender = escapeHTML(sender);
@@ -268,7 +278,11 @@
             } else if (isSelf) {
                  li.innerHTML = `<strong>${safeSender}:</strong> ${safeMessage}`;
                  li.classList.add('self');
-            } else {
+            } else if (isOther) { // 🚨 تطبيق الفئة الجديدة للرسائل المستقبلة
+                 li.innerHTML = `<strong>${safeSender}:</strong> ${safeMessage}`;
+                 li.classList.add('other'); 
+            } else { 
+                // تنسيق احتياطي (لن يتم استخدامه عملياً الآن)
                  li.innerHTML = `<strong>${safeSender}:</strong> ${safeMessage}`;
             }
             
@@ -325,7 +339,7 @@
                 } else if (data.type === 'chat') {
                     // عرض رسائل الدردشة المرسلة من الآخرين
                     if (data.sender !== userName) { 
-                         displayMessage(data.sender, data.message, false, false);
+                         displayMessage(data.sender, data.message, false, false, true); // 🚨 تم تمرير true لتطبيق فئة 'other'
                     }
                 }
             } catch (e) {
@@ -342,7 +356,7 @@
                 // إرسال محتوى الرسالة الخام، والخادم يقوم بتنسيقها
                 ws.send(message); 
                 
-                // عرض الرسالة محلياً فوراً (لإعطاء انطباع بالسرعة)
+                // عرض الرسالة محلياً فوراً (لتطبيق فئة 'self')
                 displayMessage(userName, message, false, true); 
                 
                 input.value = '';
