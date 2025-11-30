@@ -212,7 +212,6 @@
     </div>
 
     <script>
-        // 🚨 التعديل الأول: جعل ws متغيراً يمكن إعادة تعريفه وإزالة الاتصال الأولي
         let ws = null; 
         let userName = null; 
         const messagesContainer = document.getElementById('messages');
@@ -228,21 +227,21 @@
         const tryAgainBtn = document.getElementById('try-again-btn');
 
         const reservedNames = ["Admin", "System", "Server", "Root", "God"]; 
-        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // تم استخراج الرابط
+        const SERVER_URL = 'chat-app-xz3c.onrender.com'; // يجب التأكد من هذا الرابط
 
         // -----------------------------------------------------
-        // وظائف الاتصال والتحقق (NEW)
+        // وظائف الاتصال والتحقق 
         // -----------------------------------------------------
 
         function connectWebSocket() {
-            // 🚨 التعديل الثاني: استخدام wss:// للاتصال الآمن
+            // استخدام wss:// للاتصال الآمن
             ws = new WebSocket('wss://' + SERVER_URL); 
             
             ws.onopen = () => {
                 console.log("WebSocket Connected.");
                 const name = localStorage.getItem('pendingUserName');
                 
-                // إذا كان المستخدم بانتظار الموافقة، أعد إرسال الطلب فور الاتصال
+                // إعادة إرسال طلب الانضمام إذا كان معلقاً
                 if (name) {
                     currentStatusMessage.innerHTML = `<p style="color: #00eaff;">حالة الطلب: **تم استعادة الاتصال** وإعادة إرسال طلب الموافقة...</p>`;
                     ws.send(JSON.stringify({ 
@@ -255,8 +254,7 @@
             ws.onclose = () => {
                 console.log("WebSocket Disconnected.");
                 
-                // 🚨 التعديل الثالث: آلية إعادة الاتصال التلقائي
-                // إذا فقد الاتصال والمستخدم لا يزال ينتظر (لم تتم الموافقة عليه بعد)
+                // آلية إعادة الاتصال التلقائي (كل 5 ثوان)
                 if (localStorage.getItem('pendingUserName')) {
                     currentStatusMessage.innerHTML = `<p style="color: #ff3b30;">**تم فقدان الاتصال!** محاولة إعادة الاتصال في 5 ثواني...</p>`;
                     setTimeout(connectWebSocket, 5000); 
@@ -265,10 +263,8 @@
             
             ws.onerror = (error) => {
                 console.error("WebSocket Error:", error);
-                // يمكن إضافة رسالة خطأ للمستخدم هنا
             };
 
-            // ربط معالج onmessage بالدالة الجديدة
             ws.onmessage = handleServerMessage; 
         }
 
@@ -304,7 +300,6 @@
         }
 
         function validateAndSetUsername() {
-            // ... (باقي منطق التحقق من الاسم) ...
             const name = usernameInput.value.trim();
 
             if (name.length < 3 || name.length > 20) {
@@ -322,33 +317,28 @@
                 return false;
             }
 
-            // التأكد من أن الاتصال مفتوح قبل الإرسال
             if (ws.readyState !== WebSocket.OPEN) {
                 errorMessage.textContent = "جاري الاتصال بالخادم، يرجى المحاولة بعد قليل.";
                 return false;
             }
             
-            // 1. إخفاء نافذة إدخال الاسم
             modal.style.display = 'none';
-
-            // 2. إظهار نافذة حالة الطلب
             statusModal.style.display = 'flex';
             currentStatusMessage.innerHTML = `<p style="color: #ffcc00;">حالة الطلب: **قيد الانتظار**...</p>`;
             tryAgainBtn.style.display = 'none';
             
-            // 3. إرسال طلب الانضمام للخادم
+            // إرسال طلب الانضمام للخادم
             ws.send(JSON.stringify({ 
                 type: 'join_request', 
                 name: name 
             }));
             
-            // تخزين الاسم مؤقتاً لحين الموافقة
             localStorage.setItem('pendingUserName', name);
             return true; 
         }
 
         // -----------------------------------------------------
-        // معالجة الأحداث والردود من الخادم (NEW)
+        // معالجة الأحداث والردود من الخادم 
         // -----------------------------------------------------
         function handleServerMessage(event) {
             try {
@@ -396,7 +386,6 @@
             } catch (e) {
                  // إذا كانت رسالة نصية عادية (بعد الموافقة)
                  if (userName !== null) {
-                    // رسالة نصية بسيطة، قم بعرضها
                     const fullMessage = event.data;
                     let sender = "Other"; 
                     if (fullMessage.includes(":")) {
@@ -421,7 +410,6 @@
                 
                 ws.send(formattedMessage);
                 
-                // العرض المحلي برسالة 'self' لتأكيد الإرسال
                 displayMessage(userName, message, false, true); 
                 
                 input.value = '';
@@ -442,7 +430,7 @@
 
         tryAgainBtn.addEventListener('click', function() {
             statusModal.style.display = 'none';
-            modal.style.display = 'flex'; // إعادة إظهار شاشة إدخال الاسم
+            modal.style.display = 'flex'; 
             usernameInput.value = '';
         });
         
@@ -452,9 +440,8 @@
             }
         });
 
-        // التحقق عند تحميل الصفحة من وجود طلب معلق والبدء بالاتصال
         window.onload = function() {
-            connectWebSocket(); // 🚨 البدء بالاتصال عند تحميل الصفحة
+            connectWebSocket(); 
             
             if (localStorage.getItem('pendingUserName')) {
                 modal.style.display = 'none';

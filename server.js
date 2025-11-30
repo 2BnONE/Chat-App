@@ -85,7 +85,6 @@ function sendApprovalEmail(userId, userName) {
         if (error) {
             console.error("❌ Error sending email:", error);
         } else {
-            // 🚨 رسالة تأكيد النجاح (إذا وصلت إلى هنا، فقد تم إرسال الإيميل)
             console.log(`✅ Approval email sent for ${userName}`); 
         }
     });
